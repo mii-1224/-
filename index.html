@@ -21,39 +21,13 @@
     
     <style>
         :root { --bg-main: #F8FAFC; }
-        /* 
-           Body 設定 overflow: hidden 禁止整個頁面捲動，
-           改由內部的 scroller 區域負責捲動，以實現標題固定效果。
-        */
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            background-color: var(--bg-main); 
-            color: #334155; 
-            -webkit-tap-highlight-color: transparent; 
-            height: 100vh; 
-            overflow: hidden; 
-            -webkit-user-select: none; 
-            user-select: none; 
-        }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-main); color: #334155; -webkit-tap-highlight-color: transparent; min-height: 100vh; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
         
         /* Layout & Safe Area */
         .header-safe-area { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: 0.75rem; }
         .bottom-nav-safe { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
-        
-        /* 
-           關鍵修正：大幅增加底部 Padding 
-           9rem (約144px) 足夠閃避底部導航列 + 懸浮按鈕 
-        */
-        .content-pb { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
-
-        /* Scroller 設定：還原 iOS 原生慣性捲動與回彈效果 */
-        .scroller {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
-            height: 100%;
-        }
+        .content-pb { padding-bottom: calc(8rem + env(safe-area-inset-bottom)); }
 
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -86,16 +60,16 @@
 </head>
 <body>
 
-<div id="app" class="relative h-screen w-full flex flex-col bg-slate-50" v-cloak>
+<div id="app" class="relative min-h-screen flex flex-col" v-cloak>
     
     <!-- Loading -->
-    <div v-if="isLoading" class="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+    <div v-if="isLoading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
         <div class="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-slate-600 mb-4"></div>
         <p class="text-xs text-slate-400 font-bold tracking-widest">LOADING</p>
     </div>
 
     <!-- Login -->
-    <div v-if="!user" class="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 h-full overflow-y-auto">
+    <div v-if="!user" class="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
         <div class="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center text-6xl mb-8 border border-slate-100">✈️</div>
         <h1 class="text-3xl font-bold text-slate-800 mb-2">My Trip</h1>
         <p class="text-slate-400 mb-10 text-center">Plan your journey, track your budget.</p>
@@ -106,18 +80,17 @@
     </div>
 
     <!-- Main App -->
-    <div v-else class="flex-1 flex flex-col h-full overflow-hidden relative">
+    <div v-else class="flex-1 flex flex-col h-screen overflow-hidden">
         
         <!-- Tab 1: Home -->
-        <div v-if="currentTab === 'home'" class="flex flex-col h-full">
-            <!-- Fixed Header -->
-            <div class="flex-none z-50 bg-slate-50/95 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 header-safe-area flex items-end justify-between transition-all">
+        <div v-if="currentTab === 'home'" class="h-full overflow-y-auto content-pb">
+            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 header-safe-area flex items-end justify-between">
                  <input v-model="settings.trip_name" @blur="saveSettings" class="text-2xl font-bold text-slate-800 bg-transparent border-none p-0 outline-none w-full placeholder-slate-300" placeholder="點擊輸入旅遊名稱">
-                 <div class="text-[10px] text-slate-400 font-mono pb-2 pl-2 flex-shrink-0 whitespace-nowrap">{{ tripDateRange }}</div>
+                 <!-- Modified Date Display -->
+                 <div class="text-xs text-slate-400 pb-2 pl-2 flex-shrink-0 font-mono tracking-tight">{{ tripDateRange }}</div>
             </div>
 
-            <!-- Scrollable Content -->
-            <div class="flex-1 scroller content-pb p-6 space-y-6">
+            <div class="p-6 space-y-6 mt-2">
                 <!-- Weather -->
                 <div @click="openLocationModal" :class="weatherThemeClass" class="rounded-3xl p-5 relative overflow-hidden shadow-sm active:scale-[0.98] transition-transform cursor-pointer">
                     <div class="flex justify-between items-start mb-6">
@@ -188,22 +161,23 @@
         </div>
 
         <!-- Tab 2: Itinerary -->
-        <div v-if="currentTab === 'itinerary'" class="flex flex-col h-full">
-            <!-- Fixed Header -->
-            <div class="flex-none z-50 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm">
+        <div v-if="currentTab === 'itinerary'" class="h-full flex flex-col overflow-hidden">
+            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm flex-shrink-0">
                 <div class="px-4 py-2">
                     <div class="flex overflow-x-auto hide-scrollbar gap-3 py-1 items-center">
                         <button v-for="(day, idx) in totalDays" :key="idx" @click="selectedDayIdx = idx" :class="selectedDayIdx === idx ? 'bg-slate-800 text-white shadow-md shadow-slate-400/30 scale-105' : 'bg-white text-slate-500 border border-slate-200'" class="flex-shrink-0 w-12 h-14 rounded-xl flex flex-col items-center justify-center transition-all duration-200 active:scale-95">
-                            <span class="text-[9px] uppercase opacity-60">Day</span>
+                            <span class="text-[10px] uppercase opacity-60">Day</span>
                             <span class="text-lg font-bold leading-none">{{ idx + 1 }}</span>
-                            <span class="text-[9px] mt-0.5 opacity-80">{{ getDayDate(idx) }}</span>
+                            <!-- Added Date Display -->
+                            <span class="text-[9px] font-medium opacity-60 mt-0.5">{{ getDayDate(idx) }}</span>
                         </button>
+                        <!-- Updated add button to just change current selection if needed, or we can keep it for extension, but changing dates is better in settings -->
+                        <div class="w-2 flex-shrink-0"></div>
                     </div>
                 </div>
             </div>
             
-            <!-- Scrollable Content -->
-            <div class="flex-1 scroller px-5 py-6 content-pb relative">
+            <div class="flex-1 overflow-y-auto px-5 py-6" style="padding-bottom: 200px;">
                 <div ref="sortableList" class="space-y-4">
                     <div v-for="item in currentDayItinerary" :key="item.id" :data-id="item.id" :class="`cat-${item.category}`" class="group bg-white rounded-xl shadow-sm border border-slate-100 border-l-[6px] p-4 relative transition-all active:scale-[0.98] cursor-pointer" @click="openItineraryModal(item)">
                         <div class="flex gap-3">
@@ -227,25 +201,20 @@
                         </div>
                     </div>
                 </div>
-                <!-- Empty State -->
-                <div v-if="currentDayItinerary.length === 0" class="flex flex-col items-center justify-center h-48 opacity-50"><div class="text-sm text-slate-400">此日尚無行程</div></div>
-                <!-- Spacer to force scroll height for elasticity when empty -->
-                <div class="h-1 w-full"></div>
+                <div v-if="currentDayItinerary.length === 0" class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-sm text-slate-400">此日尚無行程</div></div>
             </div>
             
-            <button @click="openItineraryModal(null)" class="fixed bottom-28 right-6 bg-slate-800/80 backdrop-blur-sm text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl pb-1 z-30 transition-transform active:scale-90">+</button>
+            <!-- Added opacity-70 -->
+            <button @click="openItineraryModal(null)" class="fixed bottom-28 right-6 bg-slate-800 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl pb-1 z-30 transition-transform active:scale-90 opacity-70 hover:opacity-100">+</button>
         </div>
 
         <!-- Tab 3: Shopping -->
-        <div v-if="currentTab === 'shopping'" class="flex flex-col h-full">
-            <!-- Fixed Header -->
-            <div class="flex-none z-50 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
+        <div v-if="currentTab === 'shopping'" class="h-full overflow-y-auto content-pb">
+            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
                  <h1 class="text-2xl font-bold text-slate-800 leading-none pb-1">購買清單</h1>
                  <div class="text-xs text-slate-400 font-mono mt-1" v-if="totalShoppingCost > 0">💸 預計花費: ${{ totalShoppingCost }}</div>
             </div>
-
-            <!-- Scrollable Content -->
-            <div class="flex-1 scroller content-pb p-6">
+            <div class="p-6">
                 <div class="grid grid-cols-2 gap-3">
                     <div v-for="item in shoppingList" :key="item.id" @click="openShoppingModal(item)" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-full transition-all active:scale-[0.98] cursor-pointer">
                         <div>
@@ -263,21 +232,18 @@
                         </div>
                     </div>
                 </div>
-                <div v-if="shoppingList.length === 0" class="flex flex-col items-center justify-center h-48 opacity-50"><div class="text-sm text-slate-400">尚無購買清單</div></div>
-                <div class="h-1 w-full"></div>
+                <div v-if="shoppingList.length === 0" class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-sm text-slate-400">尚無購買清單</div></div>
             </div>
-            <button @click="openShoppingModal(null)" class="fixed bottom-28 right-6 bg-slate-800/80 backdrop-blur-sm text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl pb-1 z-30 transition-transform active:scale-90">+</button>
+            <!-- Added opacity-70 -->
+            <button @click="openShoppingModal(null)" class="fixed bottom-28 right-6 bg-slate-800 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl pb-1 z-30 transition-transform active:scale-90 opacity-70 hover:opacity-100">+</button>
         </div>
 
         <!-- Tab 4: Settings -->
-        <div v-if="currentTab === 'settings'" class="flex flex-col h-full">
-            <!-- Fixed Header -->
-            <div class="flex-none z-50 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
+        <div v-if="currentTab === 'settings'" class="h-full overflow-y-auto content-pb">
+            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
                  <h1 class="text-2xl font-bold text-slate-800 leading-none pb-1">設定</h1>
             </div>
-
-            <!-- Scrollable Content -->
-            <div class="flex-1 scroller content-pb p-6 space-y-6">
+            <div class="p-6 space-y-6 mt-2">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
                     <div class="w-20 h-20 rounded-full bg-slate-200 overflow-hidden mb-4 border-2 border-white shadow-md">
                         <img v-if="user.photoURL" :src="user.photoURL" class="w-full h-full object-cover">
@@ -293,20 +259,14 @@
                             <label class="text-xs text-slate-500 mb-1 block">旅遊名稱</label>
                             <input v-model="settings.trip_name" @blur="saveSettings" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none font-bold text-slate-700" placeholder="輸入名稱">
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs text-slate-500 mb-1 block">開始日期</label>
-                                <input type="date" v-model="settings.start_date" @change="calculateDays" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none">
+                        <!-- Modified: Date Range Picker -->
+                        <div>
+                            <label class="text-xs text-slate-500 mb-1 block">旅遊日期</label>
+                            <div class="flex items-center gap-2">
+                                <input type="date" v-model="settings.start_date" @change="saveSettings" class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none outline-none font-bold text-slate-700">
+                                <span class="text-slate-300">-</span>
+                                <input type="date" v-model="settings.end_date" @change="saveSettings" class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none outline-none font-bold text-slate-700">
                             </div>
-                            <div>
-                                <label class="text-xs text-slate-500 mb-1 block">結束日期</label>
-                                <input type="date" v-model="settings.end_date" @change="calculateDays" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none">
-                            </div>
-                        </div>
-                        
-                        <div class="pt-2 text-center text-xs text-slate-400">
-                             總天數: <span class="font-bold text-slate-600">{{ settings.days }} 天</span>
                         </div>
                     </div>
                 </div>
@@ -314,7 +274,7 @@
         </div>
 
         <!-- Bottom Nav -->
-        <div class="flex-none fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200 px-6 flex justify-between z-40 bottom-nav-safe">
+        <div class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200 px-6 flex justify-between z-40 bottom-nav-safe">
             <button @click="currentTab = 'home'" :class="currentTab === 'home' ? 'text-slate-800' : 'text-slate-400'" class="flex flex-col items-center gap-1 p-2 w-14 transition-colors"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span class="text-[9px] font-bold">首頁</span></button>
             <button @click="currentTab = 'itinerary'" :class="currentTab === 'itinerary' ? 'text-slate-800' : 'text-slate-400'" class="flex flex-col items-center gap-1 p-2 w-14 transition-colors"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span class="text-[9px] font-bold">行程</span></button>
             <button @click="currentTab = 'shopping'" :class="currentTab === 'shopping' ? 'text-slate-800' : 'text-slate-400'" class="flex flex-col items-center gap-1 p-2 w-14 transition-colors"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg><span class="text-[9px] font-bold">購買</span></button>
@@ -325,8 +285,12 @@
     <!-- Modals -->
     <transition name="fade"><div v-if="showLocationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-6" @click.self="showLocationModal = false"><div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl"><h3 class="text-lg font-bold text-slate-800 mb-4 text-center">設定地點</h3><div class="relative mb-4"><input v-model="searchQuery" @keyup.enter="searchCity" placeholder="輸入城市名稱" class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none outline-none"><button @click="searchCity" class="absolute right-3 top-3 p-1 bg-blue-500 text-white rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></button></div><div v-if="searchResult" class="mb-4 p-4 bg-green-50 rounded-xl flex justify-between items-center"><div><div class="text-sm font-bold text-green-800">{{ searchResult.name }}</div><div class="text-xs text-green-600">{{ searchResult.country }}</div></div><button @click="confirmLocation" class="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold">選擇</button></div><button @click="showLocationModal=false" class="w-full py-3 text-slate-400 text-sm">取消</button></div></div></transition>
     <transition name="fade"><div v-if="showFlightModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" @click.self="showFlightModal = false"><div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl overflow-y-auto max-h-[85vh]"><h3 class="text-lg font-bold text-slate-800 mb-6 text-center">編輯航班</h3><div class="space-y-5"><div class="p-4 bg-slate-50 rounded-2xl border border-slate-100"><div class="text-xs font-bold text-slate-400 mb-3 tracking-wider">去程</div><input v-model="tempFlights.fl_out.date" type="date" class="w-full mb-3 p-3 bg-white rounded-xl text-sm border-none shadow-sm"><input v-model="tempFlights.fl_out.no" placeholder="航班代號" class="w-full mb-3 p-3 bg-white rounded-xl text-sm border-none shadow-sm"><div class="flex items-center gap-2"><input v-model="tempFlights.fl_out.dep" type="time" class="flex-1 p-3 bg-white rounded-xl text-sm shadow-sm"><span class="text-slate-300">→</span><input v-model="tempFlights.fl_out.arr" type="time" class="flex-1 p-3 bg-white rounded-xl text-sm shadow-sm"></div></div><div class="p-4 bg-slate-50 rounded-2xl border border-slate-100"><div class="text-xs font-bold text-slate-400 mb-3 tracking-wider">回程</div><input v-model="tempFlights.fl_in.date" type="date" class="w-full mb-3 p-3 bg-white rounded-xl text-sm border-none shadow-sm"><input v-model="tempFlights.fl_in.no" placeholder="航班代號" class="w-full mb-3 p-3 bg-white rounded-xl text-sm border-none shadow-sm"><div class="flex items-center gap-2"><input v-model="tempFlights.fl_in.dep" type="time" class="flex-1 p-3 bg-white rounded-xl text-sm shadow-sm"><span class="text-slate-300">→</span><input v-model="tempFlights.fl_in.arr" type="time" class="flex-1 p-3 bg-white rounded-xl text-sm shadow-sm"></div></div></div><button @click="saveFlights" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-2xl text-sm font-bold shadow-lg">儲存變更</button></div></div></transition>
+    
+    <!-- Itin Modal -->
     <transition name="slide-up"><div v-if="showItinModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/30 backdrop-blur-sm" @click.self="showItinModal = false"><div class="bg-white w-full sm:w-96 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl h-[85vh] sm:h-auto overflow-y-auto"><h3 class="text-lg font-bold text-slate-800 mb-6">{{ editingItem.id ? '編輯行程' : '新增行程' }}</h3><div class="space-y-4"><div class="flex gap-3"><div class="w-1/3"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">日期</label><select v-model="editingItem.date_offset" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none"><option v-for="(d, i) in totalDays" :key="i" :value="i">第 {{ i+1 }} 天</option></select></div><div class="w-2/3"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">時間</label><input type="time" v-model="editingItem.time" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none"></div></div><div><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">分類</label><div class="relative"><select v-model="editingItem.category" class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none outline-none appearance-none font-bold text-slate-700"><option v-for="(label, key) in categoryMap" :key="key" :value="key">{{ label }}</option></select><div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div></div></div><input v-model="editingItem.title" placeholder="標題" class="w-full p-4 bg-slate-50 rounded-xl text-base font-bold border-none outline-none"><input v-model="editingItem.location" placeholder="地點" class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none outline-none"><div class="flex gap-3"><select v-model="editingItem.currency" class="w-1/3 p-4 bg-slate-50 rounded-xl text-sm font-mono border-none outline-none"><option value="JPY">JPY</option><option value="TWD">TWD</option><option value="USD">USD</option><option value="KRW">KRW</option></select><input type="number" v-model="editingItem.cost" placeholder="金額" class="w-2/3 p-4 bg-slate-50 rounded-xl text-sm font-mono border-none outline-none"></div><textarea v-model="editingItem.note" placeholder="備註" rows="3" class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none outline-none"></textarea><div><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">圖片</label><div class="mt-1 flex items-center gap-3"><input type="file" accept="image/*" @change="handleImageUpload" class="text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"><div v-if="editingItem.image" class="w-10 h-10 bg-cover rounded border border-slate-200" :style="{ backgroundImage: 'url(' + editingItem.image + ')' }"></div><button v-if="editingItem.image" @click="editingItem.image = null" class="text-xs text-red-400">刪除</button></div></div></div><div class="flex gap-3 mt-8"><button v-if="editingItem.id" @click="deleteItinerary" class="flex-1 py-4 text-red-500 bg-red-50 rounded-2xl font-bold text-sm">刪除</button><button @click="saveItinerary" class="flex-[2] py-4 bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-xl">儲存</button></div></div></div></transition>
     <transition name="fade"><div v-if="showShopModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm px-4" @click.self="showShopModal = false"><div class="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl"><h3 class="text-lg font-bold text-slate-800 mb-6 text-center">{{ tempShopItem.id ? '編輯物品' : '新增物品' }}</h3><div class="space-y-4"><input v-model="tempShopItem.item_name" placeholder="品名" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none"><input v-model="tempShopItem.location" placeholder="購買地點" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none"><input v-model="tempShopItem.est_cost" type="number" placeholder="預估金額" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none"></div><button @click="saveShoppingItem" class="w-full mt-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold shadow-lg">確認</button></div></div></transition>
+    
+    <!-- Image Lightbox -->
     <transition name="fade"><div v-if="showImagePreview" class="fixed inset-0 z-[60] bg-black flex items-center justify-center p-4" @click="showImagePreview = false"><img :src="currentPreviewImage" class="max-w-full max-h-full rounded-lg shadow-2xl scale-100 transition-transform"></div></transition>
 
 </div>
@@ -362,7 +326,8 @@
             const user = ref(null);
             const currentTab = ref('home');
             const isLoading = ref(true);
-            const settings = ref({ trip_name: '', lat: '', lng: '', weather_city: '', days: 1, start_date: '', end_date: '', fl_out: {}, fl_in: {} });
+            // Modified: Added start_date and end_date
+            const settings = ref({ trip_name: '', lat: '', lng: '', weather_city: '', start_date: '', end_date: '', fl_out: {}, fl_in: {} });
             const itineraryList = ref([]);
             const shoppingList = ref([]);
             const todoList = ref([]);
@@ -387,28 +352,51 @@
             const sortableList = ref(null);
             const categoryMap = { spot: '景點', eat: '吃喝', buy: '購物', trans: '交通', stay: '住宿' };
 
-            const totalDays = computed(() => { const n = parseInt(settings.value.days); return Array.from({length: isNaN(n) ? 1 : n}, (_, i) => i); });
-            const currentDayItinerary = computed(() => itineraryList.value.filter(item => parseInt(item.date_offset) === selectedDayIdx.value));
-            const totalShoppingCost = computed(() => shoppingList.value.reduce((acc, item) => acc + (parseInt(item.est_cost) || 0), 0));
-            
-            // 格式化：25.11.20-25.11.25
-            const tripDateRange = computed(() => { 
-                if(!settings.value.start_date || !settings.value.end_date) return "請設定日期";
-                const fmt = (dStr) => {
-                    const d = new Date(dStr);
-                    return `${d.getFullYear().toString().slice(2)}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getDate().toString().padStart(2,'0')}`;
-                };
-                return `${fmt(settings.value.start_date)}-${fmt(settings.value.end_date)}`;
+            // Modified: Calculate total days based on start and end date
+            const totalDays = computed(() => { 
+                if (settings.value.start_date && settings.value.end_date) {
+                    const start = new Date(settings.value.start_date);
+                    const end = new Date(settings.value.end_date);
+                    const diffTime = Math.abs(end - start);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+                    return diffDays > 0 ? Array.from({length: diffDays}, (_, i) => i) : [0];
+                }
+                return Array.from({length: 1}, (_, i) => i); 
             });
 
-            // 取得第 N 天的日期 (MM/DD)
-            const getDayDate = (idx) => {
-                if(!settings.value.start_date) return "";
-                const d = new Date(settings.value.start_date);
-                d.setDate(d.getDate() + idx);
-                return `${d.getMonth()+1}/${d.getDate()}`;
+            // Added: Helper to format date for display (YY.MM.DD)
+            const formatDateShort = (dateStr) => {
+                if(!dateStr) return '??.??.??';
+                const d = new Date(dateStr);
+                const yy = d.getFullYear().toString().slice(-2);
+                const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                const dd = d.getDate().toString().padStart(2, '0');
+                return `${yy}.${mm}.${dd}`;
             };
 
+            // Added: Computed property for trip date range
+            const tripDateRange = computed(() => {
+                if (settings.value.start_date && settings.value.end_date) {
+                    return `${formatDateShort(settings.value.start_date)}-${formatDateShort(settings.value.end_date)}`;
+                }
+                // Fallback to local date if not set
+                const d = new Date(); 
+                return `${d.getMonth()+1}/${d.getDate()}`;
+            });
+
+            // Added: Helper to get specific MM/DD for a day index
+            const getDayDate = (idx) => {
+                if (!settings.value.start_date) return '';
+                const d = new Date(settings.value.start_date);
+                d.setDate(d.getDate() + idx);
+                const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                const dd = d.getDate().toString().padStart(2, '0');
+                return `${mm}/${dd}`;
+            };
+
+            const currentDayItinerary = computed(() => itineraryList.value.filter(item => parseInt(item.date_offset) === selectedDayIdx.value));
+            const totalShoppingCost = computed(() => shoppingList.value.reduce((acc, item) => acc + (parseInt(item.est_cost) || 0), 0));
+            const localDate = computed(() => { const d = new Date(); return `${d.getMonth()+1}/${d.getDate()}`; }); // Keeping this ref for internal use if needed
             const weatherThemeClass = computed(() => {
                 const c = weather.value.code;
                 if(c === 800) return 'weather-clear';
@@ -423,7 +411,7 @@
                     if(u) fetchData(u.uid);
                     else {
                         isLoading.value = false;
-                        settings.value = { trip_name: '', days: 1, fl_out: {}, fl_in: {} };
+                        settings.value = { trip_name: '', start_date: '', end_date: '', fl_out: {}, fl_in: {} };
                         itineraryList.value = [];
                     }
                 });
@@ -455,18 +443,12 @@
 
             const saveSettings = async () => { if(user.value) await setDoc(doc(db, "users", user.value.uid, "settings", "main"), settings.value); };
             
-            // 計算天數並儲存
-            const calculateDays = async () => {
-                if(settings.value.start_date && settings.value.end_date) {
-                    const start = new Date(settings.value.start_date);
-                    const end = new Date(settings.value.end_date);
-                    const diffTime = Math.abs(end - start);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-                    if(diffDays > 0) {
-                        settings.value.days = diffDays;
-                        await saveSettings();
-                    }
-                }
+            const addNewDay = async () => {
+                // Modified: Now logic should probably be to extend end_date, but UI button is removed from settings, kept here for extension if needed
+                // Currently doing nothing to avoid conflict with date picker logic, or could extend end_date by 1 day
+            };
+            const changeDays = async (delta) => { 
+                // Deprecated in favor of date picker, but keeping empty or adjusting end_date could work
             };
 
             const handleImageUpload = (event) => {
@@ -616,10 +598,10 @@
                 currentTab, isLoading, settings, itineraryList, shoppingList, todoList, weather, forecast, 
                 showLocationModal, showFlightModal, showItinModal, showShopModal, showImagePreview, currentPreviewImage,
                 tempFlights, editingItem, tempShopItem, newTodoText, searchQuery, searchResult, searchError,
-                searchCity, confirmLocation, openLocationModal, saveSettings, openFlightModal, saveFlights, calcDuration, calculateDays,
+                searchCity, confirmLocation, openLocationModal, saveSettings, openFlightModal, saveFlights, calcDuration, addNewDay, changeDays,
                 addTodo, toggleTodo, deleteTodo, totalDays, selectedDayIdx, currentDayItinerary, openItineraryModal, saveItinerary, deleteItinerary,
                 openShoppingModal, saveShoppingItem, toggleShopStatus, deleteShoppingItem, totalShoppingCost, sortableList, categoryMap, openMap,
-                tripDateRange, getDayDate, weatherThemeClass, handleImageUpload, openImagePreview
+                localDate, weatherThemeClass, handleImageUpload, openImagePreview, tripDateRange, getDayDate
             };
         }
     }).mount('#app');
