@@ -27,8 +27,8 @@
         /* Layout & Safe Area */
         .header-safe-area { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: 0.75rem; }
         .bottom-nav-safe { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
-        .content-pb { padding-bottom: calc(8rem + env(safe-area-inset-bottom)); }
-
+        
+        /* 隱藏捲軸但保留功能 */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -83,78 +83,80 @@
     <div v-else class="flex-1 flex flex-col h-screen overflow-hidden">
         
         <!-- Tab 1: Home -->
-        <div v-if="currentTab === 'home'" class="h-full overflow-y-auto content-pb">
-            <!-- Sticky Header -->
-            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 header-safe-area flex items-end justify-between">
+        <div v-if="currentTab === 'home'" class="relative h-full overflow-hidden">
+            <!-- Fixed Header (Absolute) -->
+            <div class="absolute top-0 left-0 right-0 z-30 bg-slate-50/95 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 header-safe-area flex items-end justify-between">
                  <input v-model="settings.trip_name" @blur="saveSettings" class="text-2xl font-bold text-slate-800 bg-transparent border-none p-0 outline-none w-full placeholder-slate-300" placeholder="點擊輸入旅遊名稱">
-                 <!-- 顯示旅遊日期 -->
                  <div class="text-[10px] text-slate-400 font-mono pb-2 pl-2 flex-shrink-0 whitespace-nowrap">{{ tripDateRange }}</div>
             </div>
 
-            <div class="p-6 space-y-6 mt-2">
-                <!-- Weather -->
-                <div @click="openLocationModal" :class="weatherThemeClass" class="rounded-3xl p-5 relative overflow-hidden shadow-sm active:scale-[0.98] transition-transform cursor-pointer">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1 opacity-80">
-                                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                    {{ settings.weather_city || '設定地點' }}
-                                </span>
-                                <div class="bg-white/30 px-1.5 py-0.5 rounded text-[9px] font-bold">點擊修改</div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                 <div class="text-5xl font-light tracking-tight">{{ weather.temp }}°</div>
-                                 <div class="flex flex-col"><div class="text-sm font-medium">{{ weather.desc }}</div><div class="text-xs opacity-60">Today</div></div>
-                            </div>
-                        </div>
-                        <img v-if="weather.icon" :src="`https://openweathermap.org/img/wn/${weather.icon}@2x.png`" class="w-16 h-16 -mt-2 opacity-80 mix-blend-multiply">
-                    </div>
-                    <div class="grid grid-cols-5 gap-1 border-t border-black/5 pt-4">
-                        <div v-for="(day, index) in forecast" :key="index" class="flex flex-col items-center justify-between h-full">
-                            <span class="text-[10px] font-bold opacity-60">{{ day.date }}</span>
-                            <img :src="`https://openweathermap.org/img/wn/${day.icon}.png`" class="w-8 h-8 opacity-80 my-1">
-                            <span class="text-xs font-bold">{{ day.temp }}°</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Flights -->
-                <div class="rounded-2xl p-6 shadow-sm border border-slate-200/60" style="background-color: #F1F5F9;">
-                    <div class="flex justify-between items-center mb-6 border-b border-slate-200 pb-3">
-                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">FLIGHTS</h2>
-                        <button @click="openFlightModal" class="text-xs bg-white text-slate-500 px-3 py-1 rounded shadow-sm hover:text-slate-700 transition">EDIT</button>
-                    </div>
-                    <div class="space-y-8">
-                        <div class="relative pl-5 border-l-2 border-slate-200">
-                            <div class="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-slate-300 border-2 border-[#F1F5F9] box-content"></div>
-                            <div class="flex justify-between text-xs text-slate-400 mb-2"><span class="font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded">去程</span><span class="font-mono">{{ settings.fl_out.date }} • {{ settings.fl_out.no }}</span></div>
-                            <div class="flex items-center justify-between"><div class="text-2xl font-bold text-slate-700">{{ settings.fl_out.dep || '--:--' }}</div><div class="flex-1 flex flex-col items-center px-2"><div class="h-px w-full bg-slate-300 relative top-2"></div><span class="text-[10px] text-slate-400 bg-[#F1F5F9] px-2 relative z-10">{{ calcDuration(settings.fl_out.dep, settings.fl_out.arr) }}</span></div><div class="text-2xl font-bold text-slate-700">{{ settings.fl_out.arr || '--:--' }}</div></div>
-                        </div>
-                        <div class="relative pl-5 border-l-2 border-slate-200">
-                             <div class="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-slate-300 border-2 border-[#F1F5F9] box-content"></div>
-                             <div class="flex justify-between text-xs text-slate-400 mb-2"><span class="font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded">回程</span><span class="font-mono">{{ settings.fl_in.date }} • {{ settings.fl_in.no }}</span></div>
-                             <div class="flex items-center justify-between"><div class="text-2xl font-bold text-slate-700">{{ settings.fl_in.dep || '--:--' }}</div><div class="flex-1 flex flex-col items-center px-2"><div class="h-px w-full bg-slate-300 relative top-2"></div><span class="text-[10px] text-slate-400 bg-[#F1F5F9] px-2 relative z-10">{{ calcDuration(settings.fl_in.dep, settings.fl_in.arr) }}</span></div><div class="text-2xl font-bold text-slate-700">{{ settings.fl_in.arr || '--:--' }}</div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CheckList -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">CHECK LIST</h2>
-                    <div class="space-y-3">
-                        <div v-for="todo in todoList" :key="todo.id" class="flex items-center gap-3 group">
-                            <div @click="toggleTodo(todo)" class="cursor-pointer flex-shrink-0 pt-1">
-                                <div :class="todo.is_done ? 'bg-slate-400 border-slate-400' : 'bg-white border-slate-300'" class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors">
-                                    <svg v-if="todo.is_done" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            <!-- Scrollable Content (Padding Top for Header) -->
+            <div class="h-full overflow-y-auto pt-28 pb-32">
+                <div class="p-6 space-y-6">
+                    <!-- Weather -->
+                    <div @click="openLocationModal" :class="weatherThemeClass" class="rounded-3xl p-5 relative overflow-hidden shadow-sm active:scale-[0.98] transition-transform cursor-pointer">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1 opacity-80">
+                                    <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                        {{ settings.weather_city || '設定地點' }}
+                                    </span>
+                                    <div class="bg-white/30 px-1.5 py-0.5 rounded text-[9px] font-bold">點擊修改</div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                     <div class="text-5xl font-light tracking-tight">{{ weather.temp }}°</div>
+                                     <div class="flex flex-col"><div class="text-sm font-medium">{{ weather.desc }}</div><div class="text-xs opacity-60">Today</div></div>
                                 </div>
                             </div>
-                            <span :class="{'line-through text-slate-300': todo.is_done}" class="text-sm text-slate-700 flex-1 leading-snug break-all">{{ todo.task }}</span>
-                            <button @click="deleteTodo(todo.id)" class="text-slate-200 hover:text-red-400 px-2 flex-shrink-0">×</button>
+                            <img v-if="weather.icon" :src="`https://openweathermap.org/img/wn/${weather.icon}@2x.png`" class="w-16 h-16 -mt-2 opacity-80 mix-blend-multiply">
                         </div>
-                        <div class="flex items-center gap-2 mt-4 pt-3 border-t border-slate-50 w-full">
-                            <input v-model="newTodoText" placeholder="新增待辦..." class="flex-1 min-w-0 text-sm bg-slate-50 p-3 rounded-xl outline-none" @keyup.enter="addTodo">
-                            <button @click="addTodo" class="flex-shrink-0 bg-slate-100 text-slate-400 w-10 h-10 rounded-xl hover:bg-slate-200 hover:text-slate-600 transition font-bold text-xl flex items-center justify-center">+</button>
+                        <div class="grid grid-cols-5 gap-1 border-t border-black/5 pt-4">
+                            <div v-for="(day, index) in forecast" :key="index" class="flex flex-col items-center justify-between h-full">
+                                <span class="text-[10px] font-bold opacity-60">{{ day.date }}</span>
+                                <img :src="`https://openweathermap.org/img/wn/${day.icon}.png`" class="w-8 h-8 opacity-80 my-1">
+                                <span class="text-xs font-bold">{{ day.temp }}°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flights -->
+                    <div class="rounded-2xl p-6 shadow-sm border border-slate-200/60" style="background-color: #F1F5F9;">
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-200 pb-3">
+                            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">FLIGHTS</h2>
+                            <button @click="openFlightModal" class="text-xs bg-white text-slate-500 px-3 py-1 rounded shadow-sm hover:text-slate-700 transition">EDIT</button>
+                        </div>
+                        <div class="space-y-8">
+                            <div class="relative pl-5 border-l-2 border-slate-200">
+                                <div class="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-slate-300 border-2 border-[#F1F5F9] box-content"></div>
+                                <div class="flex justify-between text-xs text-slate-400 mb-2"><span class="font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded">去程</span><span class="font-mono">{{ settings.fl_out.date }} • {{ settings.fl_out.no }}</span></div>
+                                <div class="flex items-center justify-between"><div class="text-2xl font-bold text-slate-700">{{ settings.fl_out.dep || '--:--' }}</div><div class="flex-1 flex flex-col items-center px-2"><div class="h-px w-full bg-slate-300 relative top-2"></div><span class="text-[10px] text-slate-400 bg-[#F1F5F9] px-2 relative z-10">{{ calcDuration(settings.fl_out.dep, settings.fl_out.arr) }}</span></div><div class="text-2xl font-bold text-slate-700">{{ settings.fl_out.arr || '--:--' }}</div></div>
+                            </div>
+                            <div class="relative pl-5 border-l-2 border-slate-200">
+                                 <div class="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-slate-300 border-2 border-[#F1F5F9] box-content"></div>
+                                 <div class="flex justify-between text-xs text-slate-400 mb-2"><span class="font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded">回程</span><span class="font-mono">{{ settings.fl_in.date }} • {{ settings.fl_in.no }}</span></div>
+                                 <div class="flex items-center justify-between"><div class="text-2xl font-bold text-slate-700">{{ settings.fl_in.dep || '--:--' }}</div><div class="flex-1 flex flex-col items-center px-2"><div class="h-px w-full bg-slate-300 relative top-2"></div><span class="text-[10px] text-slate-400 bg-[#F1F5F9] px-2 relative z-10">{{ calcDuration(settings.fl_in.dep, settings.fl_in.arr) }}</span></div><div class="text-2xl font-bold text-slate-700">{{ settings.fl_in.arr || '--:--' }}</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CheckList -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">CHECK LIST</h2>
+                        <div class="space-y-3">
+                            <div v-for="todo in todoList" :key="todo.id" class="flex items-center gap-3 group">
+                                <div @click="toggleTodo(todo)" class="cursor-pointer flex-shrink-0 pt-1">
+                                    <div :class="todo.is_done ? 'bg-slate-400 border-slate-400' : 'bg-white border-slate-300'" class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors">
+                                        <svg v-if="todo.is_done" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                                    </div>
+                                </div>
+                                <span :class="{'line-through text-slate-300': todo.is_done}" class="text-sm text-slate-700 flex-1 leading-snug break-all">{{ todo.task }}</span>
+                                <button @click="deleteTodo(todo.id)" class="text-slate-200 hover:text-red-400 px-2 flex-shrink-0">×</button>
+                            </div>
+                            <div class="flex items-center gap-2 mt-4 pt-3 border-t border-slate-50 w-full">
+                                <input v-model="newTodoText" placeholder="新增待辦..." class="flex-1 min-w-0 text-sm bg-slate-50 p-3 rounded-xl outline-none" @keyup.enter="addTodo">
+                                <button @click="addTodo" class="flex-shrink-0 bg-slate-100 text-slate-400 w-10 h-10 rounded-xl hover:bg-slate-200 hover:text-slate-600 transition font-bold text-xl flex items-center justify-center">+</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -162,23 +164,23 @@
         </div>
 
         <!-- Tab 2: Itinerary -->
-        <div v-if="currentTab === 'itinerary'" class="h-full flex flex-col overflow-hidden">
-            <!-- Sticky Header for Itinerary -->
-            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm flex-shrink-0">
+        <div v-if="currentTab === 'itinerary'" class="relative h-full overflow-hidden">
+            <!-- Fixed Header -->
+            <div class="absolute top-0 left-0 right-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm">
                 <div class="px-4 py-2">
                     <div class="flex overflow-x-auto hide-scrollbar gap-3 py-1 items-center">
                         <button v-for="(day, idx) in totalDays" :key="idx" @click="selectedDayIdx = idx" :class="selectedDayIdx === idx ? 'bg-slate-800 text-white shadow-md shadow-slate-400/30 scale-105' : 'bg-white text-slate-500 border border-slate-200'" class="flex-shrink-0 w-12 h-14 rounded-xl flex flex-col items-center justify-center transition-all duration-200 active:scale-95">
                             <span class="text-[9px] uppercase opacity-60">Day</span>
                             <span class="text-lg font-bold leading-none">{{ idx + 1 }}</span>
-                            <!-- 新增日期顯示在 Day 按鈕中 -->
                             <span class="text-[9px] mt-0.5 opacity-80">{{ getDayDate(idx) }}</span>
                         </button>
                     </div>
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto px-5 py-6" style="padding-bottom: 200px;">
-                <div ref="sortableList" class="space-y-4">
+            <!-- Scrollable Content -->
+            <div class="h-full overflow-y-auto pt-28 pb-32 px-5">
+                <div ref="sortableList" class="space-y-4 pt-4">
                     <div v-for="item in currentDayItinerary" :key="item.id" :data-id="item.id" :class="`cat-${item.category}`" class="group bg-white rounded-xl shadow-sm border border-slate-100 border-l-[6px] p-4 relative transition-all active:scale-[0.98] cursor-pointer" @click="openItineraryModal(item)">
                         <div class="flex gap-3">
                             <div class="flex-1 min-w-0">
@@ -204,19 +206,20 @@
                 <div v-if="currentDayItinerary.length === 0" class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-sm text-slate-400">此日尚無行程</div></div>
             </div>
             
-            <!-- 半透明按鈕 -->
             <button @click="openItineraryModal(null)" class="fixed bottom-28 right-6 bg-slate-800/80 backdrop-blur-sm text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl pb-1 z-30 transition-transform active:scale-90">+</button>
         </div>
 
         <!-- Tab 3: Shopping -->
-        <div v-if="currentTab === 'shopping'" class="h-full overflow-y-auto content-pb">
-            <!-- Sticky Header for Shopping -->
-            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
+        <div v-if="currentTab === 'shopping'" class="relative h-full overflow-hidden">
+            <!-- Fixed Header -->
+            <div class="absolute top-0 left-0 right-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
                  <h1 class="text-2xl font-bold text-slate-800 leading-none pb-1">購買清單</h1>
                  <div class="text-xs text-slate-400 font-mono mt-1" v-if="totalShoppingCost > 0">💸 預計花費: ${{ totalShoppingCost }}</div>
             </div>
-            <div class="p-6">
-                <div class="grid grid-cols-2 gap-3">
+            
+            <!-- Scrollable Content -->
+            <div class="h-full overflow-y-auto pt-28 pb-32 px-6">
+                <div class="grid grid-cols-2 gap-3 pt-4">
                     <div v-for="item in shoppingList" :key="item.id" @click="openShoppingModal(item)" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-full transition-all active:scale-[0.98] cursor-pointer">
                         <div>
                             <div class="flex justify-between items-start mb-2">
@@ -235,47 +238,49 @@
                 </div>
                 <div v-if="shoppingList.length === 0" class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-sm text-slate-400">尚無購買清單</div></div>
             </div>
-            <!-- 半透明按鈕 -->
             <button @click="openShoppingModal(null)" class="fixed bottom-28 right-6 bg-slate-800/80 backdrop-blur-sm text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl pb-1 z-30 transition-transform active:scale-90">+</button>
         </div>
 
         <!-- Tab 4: Settings -->
-        <div v-if="currentTab === 'settings'" class="h-full overflow-y-auto content-pb">
-            <!-- Sticky Header for Settings -->
-            <div class="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
+        <div v-if="currentTab === 'settings'" class="relative h-full overflow-hidden">
+            <!-- Fixed Header -->
+            <div class="absolute top-0 left-0 right-0 z-30 bg-slate-50/95 backdrop-blur-md header-safe-area border-b border-slate-200/50 shadow-sm px-6 flex flex-col justify-end">
                  <h1 class="text-2xl font-bold text-slate-800 leading-none pb-1">設定</h1>
             </div>
-            <div class="p-6 space-y-6 mt-2">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
-                    <div class="w-20 h-20 rounded-full bg-slate-200 overflow-hidden mb-4 border-2 border-white shadow-md">
-                        <img v-if="user.photoURL" :src="user.photoURL" class="w-full h-full object-cover">
+            
+            <!-- Scrollable Content -->
+            <div class="h-full overflow-y-auto pt-28 pb-32 px-6">
+                <div class="space-y-6 pt-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
+                        <div class="w-20 h-20 rounded-full bg-slate-200 overflow-hidden mb-4 border-2 border-white shadow-md">
+                            <img v-if="user.photoURL" :src="user.photoURL" class="w-full h-full object-cover">
+                        </div>
+                        <div class="text-lg font-bold text-slate-800">{{ user.displayName }}</div>
+                        <div class="text-xs text-slate-400 mb-6">{{ user.email }}</div>
+                        <button @click="logout" class="w-full py-3 bg-red-50 text-red-500 rounded-xl font-bold text-sm hover:bg-red-100 transition">登出帳號</button>
                     </div>
-                    <div class="text-lg font-bold text-slate-800">{{ user.displayName }}</div>
-                    <div class="text-xs text-slate-400 mb-6">{{ user.email }}</div>
-                    <button @click="logout" class="w-full py-3 bg-red-50 text-red-500 rounded-xl font-bold text-sm hover:bg-red-100 transition">登出帳號</button>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">行程設定</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-xs text-slate-500 mb-1 block">旅遊名稱</label>
-                            <input v-model="settings.trip_name" @blur="saveSettings" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none font-bold text-slate-700" placeholder="輸入名稱">
-                        </div>
-                        
-                        <!-- 修改後的日期選擇功能 -->
-                        <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">行程設定</h2>
+                        <div class="space-y-4">
                             <div>
-                                <label class="text-xs text-slate-500 mb-1 block">開始日期</label>
-                                <input type="date" v-model="settings.start_date" @change="calculateDays" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none">
+                                <label class="text-xs text-slate-500 mb-1 block">旅遊名稱</label>
+                                <input v-model="settings.trip_name" @blur="saveSettings" class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none outline-none font-bold text-slate-700" placeholder="輸入名稱">
                             </div>
-                            <div>
-                                <label class="text-xs text-slate-500 mb-1 block">結束日期</label>
-                                <input type="date" v-model="settings.end_date" @change="calculateDays" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none">
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs text-slate-500 mb-1 block">開始日期</label>
+                                    <input type="date" v-model="settings.start_date" @change="calculateDays" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500 mb-1 block">結束日期</label>
+                                    <input type="date" v-model="settings.end_date" @change="calculateDays" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none">
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="pt-2 text-center text-xs text-slate-400">
-                             總天數: <span class="font-bold text-slate-600">{{ settings.days }} 天</span>
+                            
+                            <div class="pt-2 text-center text-xs text-slate-400">
+                                 總天數: <span class="font-bold text-slate-600">{{ settings.days }} 天</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,7 +365,6 @@
             const currentDayItinerary = computed(() => itineraryList.value.filter(item => parseInt(item.date_offset) === selectedDayIdx.value));
             const totalShoppingCost = computed(() => shoppingList.value.reduce((acc, item) => acc + (parseInt(item.est_cost) || 0), 0));
             
-            // 格式化：25.11.20-25.11.25
             const tripDateRange = computed(() => { 
                 if(!settings.value.start_date || !settings.value.end_date) return "請設定日期";
                 const fmt = (dStr) => {
@@ -370,7 +374,6 @@
                 return `${fmt(settings.value.start_date)}-${fmt(settings.value.end_date)}`;
             });
 
-            // 取得第 N 天的日期 (MM/DD)
             const getDayDate = (idx) => {
                 if(!settings.value.start_date) return "";
                 const d = new Date(settings.value.start_date);
@@ -424,7 +427,6 @@
 
             const saveSettings = async () => { if(user.value) await setDoc(doc(db, "users", user.value.uid, "settings", "main"), settings.value); };
             
-            // 計算天數並儲存
             const calculateDays = async () => {
                 if(settings.value.start_date && settings.value.end_date) {
                     const start = new Date(settings.value.start_date);
